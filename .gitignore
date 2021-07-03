@@ -1,0 +1,8 @@
+baseline/
+dataset/
+deve.py
+BERTWithLinear/checkpoint/
+BERTWithLinear/pretrained_bert/
+BERTWithLinear/tb/
+*/__pycache__/
+.idea/
