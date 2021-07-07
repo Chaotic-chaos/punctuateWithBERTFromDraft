@@ -16,8 +16,8 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from BERTWithLinear.dataLoader import PunctuationDataset, collate_fn
-from BERTWithLinear.model import BERTForPunctuator
+from dataLoader import PunctuationDataset, collate_fn
+from model import BERTForPunctuator
 from torch.utils.tensorboard import SummaryWriter
 
 '''

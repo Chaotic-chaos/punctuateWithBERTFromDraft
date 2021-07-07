@@ -80,7 +80,7 @@ def collate_fn(data):
 
 
 if __name__ == '__main__':
-    dataset = PunctuationDataset("../dataset/processed_for_bert/dev.tsv", "../dataset/processed_for_bert/label.dict.tsv")
+    dataset = PunctuationDataset("../dataset/processed_for_bert/test.tsv", "../dataset/processed_for_bert/label.dict.tsv")
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
     for sentence, label in tqdm(dataloader):
         pass

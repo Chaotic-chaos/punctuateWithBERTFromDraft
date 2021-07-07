@@ -27,7 +27,7 @@ from BERTWithLinear.model import BERTForPunctuator
 '''
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--ckp", default="./checkpoint/epoch18.pt", help="where the model saved")
+parser.add_argument("--ckp", default="./checkpoint/epoch52.pt", help="where the model saved")
 parser.add_argument("--label-vocab", default="../dataset/processed_for_bert/label.dict.tsv")
 parser.add_argument("--bert-path", default="./pretrained_bert", help="where the pretrained bert model saved")
 parser.add_argument("--device", default="cpu", help="whether use cpu or gpu")
@@ -35,7 +35,7 @@ parser.add_argument("--device", default="cpu", help="whether use cpu or gpu")
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    sentence = "one two three four"
+    sentence = "one two three four five six"
     sentence.lower()
     sentence = sentence.split(" ")
 
