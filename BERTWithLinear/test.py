@@ -103,6 +103,6 @@ if __name__ == '__main__':
         labels_all = list(zip(*clean_res))[1]
         assert len(preds_all) == len(labels_all), "Predict labels don't match the Ground truth"
         labels_name = [",COMMA", ".PERIOD", "?QUESTIONMARK"]
-        print(1)
+        # print(1)
 
     print(metrics.classification_report(y_true=labels_all, y_pred=preds_all, target_names=labels_name))
