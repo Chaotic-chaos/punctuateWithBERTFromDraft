@@ -138,12 +138,12 @@ if __name__ == '__main__':
             train_epoch_loss += loss.item()
 
             # for debug
-            if batch == 5:
-                break
+            # if batch == 5:
+            #     break
 
         # print(f"Last batch loss: {loss.item()}")
         print(f"Starting validing...")
-        a = 0
+        # a = 0
         valid_epoch_loss = 0
         for sentences, labels in tqdm(valid_dataloader, desc="[Validing]"):
             sentences = sentences.to(device)
@@ -163,11 +163,11 @@ if __name__ == '__main__':
 
             valid_epoch_loss += loss.item()
 
-            a += 1
+            # a += 1
 
             # for debug
-            if a == 20:
-                break
+            # if a == 20:
+            #     break
 
         # output valid and train result
         train_ppl = math.exp(train_epoch_loss / len(train_dataloader))

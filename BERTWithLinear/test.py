@@ -91,7 +91,7 @@ if __name__ == '__main__':
             labels_all.append(labels[row, column])
 
         # for debug
-        break
+        # break
 
     assert len(preds_all) == len(labels_all), "Predict labels don't match the Ground truth"
     labels_name = [",COMMA", ".PERIOD", "?QUESTIONMARK", "_SPACE"]

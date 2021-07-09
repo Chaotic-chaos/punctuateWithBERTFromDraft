@@ -29,8 +29,9 @@ import torch.nn.functional as F
 class BERTForPunctuator(nn.Module):
     def __init__(self, label_size, device):
         super(BERTForPunctuator, self).__init__()
-        # self.bert = BertModel.from_pretrained("bert-base-uncased")
-        self.bert = BertModel.from_pretrained("./pretrained_bert")
+        self.bert = BertModel.from_pretrained("bert-base-uncased")
+        # use offline pretrained bert
+        # self.bert = BertModel.from_pretrained("./pretrained_bert")
         self.linear = nn.Linear(768, label_size)
         self.device = device
 
