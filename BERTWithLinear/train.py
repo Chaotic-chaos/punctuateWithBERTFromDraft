@@ -19,6 +19,7 @@ from tqdm import tqdm
 from dataLoader import PunctuationDataset, collate_fn
 from model import BERTForPunctuator
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 '''
 模型训练
@@ -51,6 +52,7 @@ parser.add_argument("--device", default="cpu", help="whether use gpu or not")
 parser.add_argument("--ckp", default="./checkpoint", help="where to save the checkpoints")
 parser.add_argument("--ckp-nums", default=5, help="how checkpoints to hold at the same time")
 parser.add_argument("--tb", default="./tb", help="where the tensorboard saved")
+parser.add_argument("--seed", default=1, help="random seed")
 
 args = parser.parse_args()
 
@@ -58,6 +60,11 @@ if __name__ == '__main__':
     '''训练模型'''
     # choose device
     device = torch.device(args.device)
+
+    # set fixed seed
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
 
     # build dataloader
     print("Loading Data...")

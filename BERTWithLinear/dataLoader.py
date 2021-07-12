@@ -28,9 +28,9 @@ class PunctuationDataset(Dataset):
             sentence_label_pair = [line.strip().split("\t") for line in f.readlines()]
 
         self.inputs = sentence_label_pair
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        # self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         # use offline pretrained bert
-        # self.tokenizer = BertTokenizer.from_pretrained("./pretrained_bert")
+        self.tokenizer = BertTokenizer.from_pretrained("./pretrained_bert")
         self.label_vocab = self._read_dict(label_vocab_path)
 
     def __len__(self):
