@@ -81,8 +81,8 @@ def collate_fn(data):
 
 
 if __name__ == '__main__':
-    dataset = PunctuationDataset("../dataset/LibriTTS/processed_for_new/dev-clean.tsv", "../dataset/LibriTTS/processed_for_new/label.dict.tsv")
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
+    dataset = PunctuationDataset("../dataset/LibriTTS/processed_for_new/test-clean.tsv", "../dataset/LibriTTS/processed_for_new/label.dict.tsv")
+    dataloader = DataLoader(dataset, batch_size=128, shuffle=False, collate_fn=collate_fn)
     for sentence, label in tqdm(dataloader):
         pass
         # print(f"sentence: {sentence}; label: {label}\n")

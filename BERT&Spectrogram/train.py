@@ -4,7 +4,7 @@
    File Name:     train
    Author:        Chaos
    Email:         life0531@foxmail.com
-   Date:          2021/6/30
+   Date:          2021/7/29
    Software:      PyCharm
 '''
 import argparse
@@ -12,14 +12,14 @@ import math
 import os
 
 import torch
-from torch import nn, optim
+import numpy as np
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataLoader import PunctuationDataset, collate_fn
-from model import BERTForPunctuator
-from torch.utils.tensorboard import SummaryWriter
-import numpy as np
+from model import BRETWithAudio
+from torch import nn, optim
 
 '''
 模型训练
@@ -34,23 +34,26 @@ import numpy as np
         3）计算loss
         4）反向传播
         5）参数更新
-    7. 存数ckp
+    7. 存储ckp
     8. 验证模型
 '''
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--train-set", default="../dataset/LibriTTS/processed_for_new/train-clean-100.tsv", help="train dataset path")
-parser.add_argument("--valid-set", default="../dataset/LibriTTS/processed_for_new/dev-clean.tsv", help="valid dataset path")
-parser.add_argument("--test-set", default=None, help="test dataset path")
-parser.add_argument("--label-vocab", default="../dataset/LibriTTS/processed_for_new/label.dict.tsv", help="label vocabulary path")
-parser.add_argument("--label-size", default=5, help="label dimension")
+parser.add_argument("--train-set", default="../dataset/LibriTTS/processed_for_new/train-clean-100.tsv", help="Path of the train dataset")
+parser.add_argument("--train-audio-prefix", default=r"H:\Datasets\Opensource\LibriTTS\resample\train-clean-100", help="Path of the audio files")
+parser.add_argument("--train-text-align-prefix", default="../dataset/LibriTTS/processed_for_new/split_text", help="Path of the align text files")
+parser.add_argument("--valid-set", default="../dataset/LibriTTS/processed_for_new/dev-clean.tsv", help="Path of the valid dataset")
+parser.add_argument("--valid-audio-prefix", default=r"H:\Datasets\Opensource\LibriTTS\resample\dev-clean", help="Path of the audio files")
+parser.add_argument("--valid-text-align-prefix", default="../dataset/LibriTTS/processed_for_new/split_text", help="Path of the align text files")
+parser.add_argument("--label-vocab", default="../dataset/LibriTTS/processed_for_new/label.dict.tsv", help="Path of the label dictionary")
+parser.add_argument("--label-size", default=5, help="Label dimension")
 parser.add_argument("--lr", default=5e-5, type=float, help="learn rate")
-parser.add_argument("--batch-size", default=3, help="batch size")
-parser.add_argument("--epoch", default=5, help="train times")
+parser.add_argument("--batch-size", default=1, help="batch size")
+parser.add_argument("--epoch", default=2, help="train times")
 parser.add_argument("--device", default="cpu", help="whether use gpu or not")
-parser.add_argument("--ckp", default="./checkpoint_test", help="where to save the checkpoints")
-parser.add_argument("--ckp-nums", default=5, help="how checkpoints to hold at the same time")
+parser.add_argument("--ckp", default="./tb/checkpoint", help="where to save the checkpoints")
+parser.add_argument("--ckp-nums", default=1, help="how many checkpoints to hold at the same time")
 parser.add_argument("--tb", default="./tb", help="where the tensorboard saved")
 parser.add_argument("--seed", default=1, help="random seed")
 
@@ -58,7 +61,8 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     '''训练模型'''
-    # choose device
+
+    # init target device
     device = torch.device(args.device)
 
     # set fixed seed
@@ -68,14 +72,14 @@ if __name__ == '__main__':
 
     # build dataloader
     print("Loading Data...")
-    train_dataset = PunctuationDataset(input_path=args.train_set, label_vocab_path=args.label_vocab)
-    valid_dataset = PunctuationDataset(input_path=args.valid_set, label_vocab_path=args.label_vocab)
+    train_dataset = PunctuationDataset(input_path=args.train_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.train_audio_prefix, text_split_path_prefix=args.train_text_align_prefix)
+    valid_dataset = PunctuationDataset(input_path=args.valid_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.valid_audio_prefix, text_split_path_prefix=args.valid_text_align_prefix)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
     valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
 
     # build model
-    print("Building model...")
-    model = BERTForPunctuator(args.label_size, device)
+    print("Building Model...")
+    model = BRETWithAudio(label_size=args.label_size, device=device)
     loss_func = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -83,7 +87,7 @@ if __name__ == '__main__':
     print(loss_func)
     print(optimizer)
 
-    # move model to device
+    # move model to target device
     model = model.to(device)
 
     # check if there's checkpoints
@@ -91,12 +95,12 @@ if __name__ == '__main__':
         # 存在checkpoint文件夹
         ckps = [os.path.join(args.ckp, file) for file in os.listdir(args.ckp)]
         if len(ckps) > 0:
-            continue_train = input(f"Found {len(ckps)} checkpoints, [c]ontinue the training or [r]emove them all:\n")
+            continue_train = input(f"Found {len(ckps)} checkpoints, [c]ontinue the train or [r]emove them all: \n")
             if continue_train == "c":
                 checkpoint = torch.load(max(ckps, key=os.path.getctime), map_location=device)
-                model.load_state_dict(checkpoint['model'])
-                optimizer.load_state_dict(checkpoint['optimizer'])
-                previous_epoch = checkpoint['epoch']
+                model.load_state_dict(checkpoint["model"])
+                optimizer.load_state_dict(checkpoint["optimizer"])
+                previous_epoch = checkpoint["epoch"]
             elif continue_train == "r":
                 # 删除所有已保存模型
                 [os.remove(file) for file in ckps]
@@ -114,9 +118,11 @@ if __name__ == '__main__':
         model.train()
 
         epoch += previous_epoch
+
         train_epoch_loss = 0
-        for sentences, labels in tqdm(train_dataloader, desc=f"[Epoch {epoch}]"):
-            # move data to device
+        for audios, sentences, labels in tqdm(train_dataloader, desc=f"[Epoch {epoch}]"):
+            # move data to target device
+            audios = audios.to(device)
             sentences = sentences.to(device)
             labels = labels.to(device)
 
@@ -125,14 +131,14 @@ if __name__ == '__main__':
 
             # forward
             try:
-                preds = model(sentences)
+                preds = model(sentences=sentences, audios=audios)
             except Exception as e:
                 print(f"Skipping this batch because {e}")
                 continue
 
             # calculate loss
             loss = loss_func(preds.view(-1, 5), labels.view(-1))
-            # write loss to tb
+            # write loss to tensorboard
             tb_writer_train.add_scalar("loss", loss.item(), batch)
 
             # backward
@@ -145,14 +151,13 @@ if __name__ == '__main__':
             train_epoch_loss += loss.item()
 
             # for debug
-            # if batch == 5:
-            #     break
+            if batch == 5:
+                break
 
-        # print(f"Last batch loss: {loss.item()}")
-        print(f"Starting validing...")
-        # a = 0
+        print("Starting Validating...")
         valid_epoch_loss = 0
-        for sentences, labels in tqdm(valid_dataloader, desc="[Validing]"):
+        for audios, sentences, labels in tqdm(valid_dataloader, desc="[Validating]"):
+            audios = audios.to(device)
             sentences = sentences.to(device)
             labels = labels.to(device)
 
@@ -160,21 +165,17 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 try:
-                    preds = model(sentences)
+                    preds = model(sentences=sentences, audios=audios)
                 except Exception as e:
                     print(f"Skipping this batch because {e}")
                     continue
 
-                # calculate loss
                 loss = loss_func(preds.view(-1, 5), labels.view(-1))
 
+                # for debug
+                break
+
             valid_epoch_loss += loss.item()
-
-            # a += 1
-
-            # for debug
-            # if a == 20:
-            #     break
 
         # output valid and train result
         train_ppl = math.exp(train_epoch_loss / len(train_dataloader))
@@ -197,4 +198,3 @@ if __name__ == '__main__':
             "optimizer": optimizer.state_dict()
         }, os.path.join(args.ckp, f"epoch{epoch}.pt"))
         print("Saved!")
-

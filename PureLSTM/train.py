@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataLoader import PunctuationDataset, collate_fn
-from model import BERTForPunctuator
+from model import LSTMForPunctuator
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
@@ -46,11 +46,11 @@ parser.add_argument("--test-set", default=None, help="test dataset path")
 parser.add_argument("--label-vocab", default="../dataset/LibriTTS/processed_for_new/label.dict.tsv", help="label vocabulary path")
 parser.add_argument("--label-size", default=5, help="label dimension")
 parser.add_argument("--lr", default=5e-5, type=float, help="learn rate")
-parser.add_argument("--batch-size", default=3, help="batch size")
-parser.add_argument("--epoch", default=5, help="train times")
-parser.add_argument("--device", default="cpu", help="whether use gpu or not")
-parser.add_argument("--ckp", default="./checkpoint_test", help="where to save the checkpoints")
-parser.add_argument("--ckp-nums", default=5, help="how checkpoints to hold at the same time")
+parser.add_argument("--batch-size", default=128, help="batch size")
+parser.add_argument("--epoch", default=35, help="train times")
+parser.add_argument("--device", default="cuda", help="whether use gpu or not")
+parser.add_argument("--ckp", default="./checkpoint", help="where to save the checkpoints")
+parser.add_argument("--ckp-nums", default=15, help="how checkpoints to hold at the same time")
 parser.add_argument("--tb", default="./tb", help="where the tensorboard saved")
 parser.add_argument("--seed", default=1, help="random seed")
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     # build model
     print("Building model...")
-    model = BERTForPunctuator(args.label_size, device)
+    model = LSTMForPunctuator(args.label_size, device)
     loss_func = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 

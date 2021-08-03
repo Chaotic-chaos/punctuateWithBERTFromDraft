@@ -12,7 +12,7 @@ import argparse
 import torch
 from transformers import BertTokenizer
 
-from BERTWithLinear.model import BERTForPunctuator
+from model import LSTMForPunctuator
 
 '''
 单句推理模式
@@ -27,7 +27,7 @@ from BERTWithLinear.model import BERTForPunctuator
 '''
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--ckp", default="./checkpoint_v2/epoch3.pt", help="where the model saved")
+parser.add_argument("--ckp", default="./checkpoint/epoch1.pt", help="where the model saved")
 parser.add_argument("--label-vocab", default="../dataset/processed_for_bert/label.dict.tsv")
 parser.add_argument("--bert-path", default="./pretrained_bert", help="where the pretrained bert model saved")
 parser.add_argument("--device", default="cpu", help="whether use cpu or gpu")
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     checkpoint = torch.load(args.ckp, map_location=device)
     # print(checkpoint)
-    model = BERTForPunctuator(5, device)
+    model = LSTMForPunctuator(5, device)
     model.load_state_dict(checkpoint['model'])
     model = model.to(device)
     model.eval()

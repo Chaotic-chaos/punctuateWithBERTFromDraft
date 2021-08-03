@@ -6,3 +6,8 @@ BERTWithLinear/pretrained_bert/
 BERTWithLinear/tb/
 */__pycache__/
 .idea/
+BERTWithLinear/checkpoint_v2/
+*/checkpoint/
+*/*/__pycache__/
+*/pretrained_bert/
+BERT&Spectrogram/test_data
