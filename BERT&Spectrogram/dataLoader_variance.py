@@ -14,10 +14,10 @@ import torch
 import numpy as np
 from aeneas.executetask import ExecuteTask
 from aeneas.task import Task
+from python_speech_features import mfcc
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertTokenizer
-from python_speech_features import mfcc
 
 '''
 加载数据，封装batch
@@ -85,7 +85,7 @@ def collate_fn(data):
     # 提取所有的音频特征，送回原存储数组，节省储存空间
     res_audio = []
     for audio in audios:
-        audio = np.array([np.mean(librosa.feature.melspectrogram(audio_seg, sr=16000, n_fft=1024, hop_length=512, n_mels=80, pad_mode="constant"), axis=1) for audio_seg in audio])
+        # audio = np.array([np.var(librosa.feature.melspectrogram(audio_seg, sr=16000, n_fft=1024, hop_length=512, n_mels=80, pad_mode="constant"), axis=1) for audio_seg in audio])
 
         # in case the audio length is 0 and there's no mfcc features can be extracted
         def _extract_mfcc(audio_seg):
@@ -94,7 +94,7 @@ def collate_fn(data):
             except:
                 return np.zeros([80, 1])
 
-        # audio = np.array([np.var(_extract_mfcc(audio_seg), axis=1) for audio_seg in audio])
+        audio = np.array([np.var(_extract_mfcc(audio_seg), axis=1) for audio_seg in audio])
         res_audio.append(audio)
     max_audio_length = max([audio.shape[0] for audio in res_audio])
     # padding audio

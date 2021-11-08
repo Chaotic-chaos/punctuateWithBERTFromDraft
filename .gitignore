@@ -11,3 +11,9 @@ BERTWithLinear/checkpoint_v2/
 */*/__pycache__/
 */pretrained_bert/
 BERT&Spectrogram/test_data
+BERT&Spectrogram/tb/
+test_pickle.pt
+BERTandWav2vec/checkpoint/
+BERTandWav2vec/tb/
+BERTandWav2vec/test_data/
+BERTandWav2vec/wav2vec_large.pt

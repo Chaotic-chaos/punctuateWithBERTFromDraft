@@ -78,28 +78,16 @@ class PunctuationDataset(Dataset):
 def collate_fn(data):
     audios, sentences, labels = zip(*data)
 
+    # padding audio sequence
+    '''这里的pad是针对audios中的每个音频分别进行pad，后续向wav2vec送的是每一个音频的不同切片组成一个batch'''
+    res_audios = []
+    for audio in audios:
+        max_audio_length = max(audio, key=lambda x: x.shape[0]).shape[0]
+        res_audios.append(torch.tensor([np.pad(a, pad_width=((0, max_audio_length - a.shape[0])), mode="constant") for a in audio]))
+
     # 获取本batch中最长的序列
     sequence_lengths = [len(line) for line in sentences]
     max_length = max(sequence_lengths)
-
-    # 提取所有的音频特征，送回原存储数组，节省储存空间
-    res_audio = []
-    for audio in audios:
-        audio = np.array([np.mean(librosa.feature.melspectrogram(audio_seg, sr=16000, n_fft=1024, hop_length=512, n_mels=80, pad_mode="constant"), axis=1) for audio_seg in audio])
-
-        # in case the audio length is 0 and there's no mfcc features can be extracted
-        def _extract_mfcc(audio_seg):
-            try:
-                return mfcc(audio_seg, samplerate=16000, numcep=80, nfilt=80).transpose()
-            except:
-                return np.zeros([80, 1])
-
-        # audio = np.array([np.var(_extract_mfcc(audio_seg), axis=1) for audio_seg in audio])
-        res_audio.append(audio)
-    max_audio_length = max([audio.shape[0] for audio in res_audio])
-    # padding audio
-    res_audio = [np.pad(array=audio, pad_width=((0, max_audio_length-audio.shape[0]), (0, 0)), mode="constant") for audio in res_audio]
-    res_audio = torch.from_numpy(np.array(res_audio))
 
     # 初始化两个结果矩阵，全置0，等待后续迭代替换非0元素，尺寸:batch_size x max_sequence_length
     res_sentences, res_labels = torch.zeros(len(sentences), max_length, dtype=torch.long), torch.zeros(len(labels), max_length, dtype=torch.long)
@@ -111,15 +99,13 @@ def collate_fn(data):
 
         assert res_sentences.size() == res_labels.size()
 
-    assert res_sentences.size() == res_audio.size()[:-1]
-
-    return res_audio, res_sentences, res_labels
+    return res_audios, res_sentences, res_labels
 
 
 if __name__ == '__main__':
     dataset = PunctuationDataset(input_path="../dataset/LibriTTS/processed_for_new/train-clean-100.tsv", label_vocab_path="../dataset/LibriTTS/processed_for_new/label.dict.tsv", audio_path_prefix=r"H:\Datasets\Opensource\LibriTTS\resample\train-clean-100", text_split_path_prefix="../dataset/LibriTTS/processed_for_new/split_text/")
 
-    dataloader = DataLoader(dataset, batch_size=5, shuffle=False, collate_fn=collate_fn)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
     for audio, sentence, label in tqdm(dataloader):
         # print(audio, sentence, label)

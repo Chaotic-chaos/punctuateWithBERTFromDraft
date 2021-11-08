@@ -4,12 +4,13 @@
    File Name:     train
    Author:        Chaos
    Email:         life0531@foxmail.com
-   Date:          2021/7/29
+   Date:          2021/8/12
    Software:      PyCharm
 '''
 import argparse
 import math
 import os
+import pickle
 
 import torch
 import numpy as np
@@ -17,9 +18,10 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from dataLoader_variance import PunctuationDataset, collate_fn
-from model import BRETWithAudio
 from torch import nn, optim
+
+from BERTandWav2vec.dataLoader import PunctuationDataset, collate_fn
+from BERTandWav2vec.model import PuncWithBERTandWav2vec
 
 '''
 模型训练
@@ -40,13 +42,14 @@ from torch import nn, optim
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--train-set", default="../dataset/LibriTTS/processed_for_new/train-clean-100.tsv", help="Path of the train dataset")
+parser.add_argument("--train-set", default="../dataset/LibriTTS/processed_for_new/pickled/train-clean-100", help="Path of the train dataset")
 parser.add_argument("--train-audio-prefix", default=r"H:\Datasets\Opensource\LibriTTS\resample\train-clean-100", help="Path of the audio files")
 parser.add_argument("--train-text-align-prefix", default="../dataset/LibriTTS/processed_for_new/split_text", help="Path of the align text files")
-parser.add_argument("--valid-set", default="../dataset/LibriTTS/processed_for_new/dev-clean.tsv", help="Path of the valid dataset")
+parser.add_argument("--valid-set", default="../dataset/LibriTTS/processed_for_new/dev-clean", help="Path of the valid dataset")
 parser.add_argument("--valid-audio-prefix", default=r"H:\Datasets\Opensource\LibriTTS\resample\dev-clean", help="Path of the audio files")
 parser.add_argument("--valid-text-align-prefix", default="../dataset/LibriTTS/processed_for_new/split_text", help="Path of the align text files")
 parser.add_argument("--label-vocab", default="../dataset/LibriTTS/processed_for_new/label.dict.tsv", help="Path of the label dictionary")
+parser.add_argument("--wav2vec-path", default="./wav2vec_large.pt")
 parser.add_argument("--label-size", default=5, help="Label dimension")
 parser.add_argument("--lr", default=5e-5, type=float, help="learn rate")
 parser.add_argument("--batch-size", default=4, help="batch size")
@@ -72,14 +75,20 @@ if __name__ == '__main__':
 
     # build dataloader
     print("Loading Data...")
-    train_dataset = PunctuationDataset(input_path=args.train_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.train_audio_prefix, text_split_path_prefix=args.train_text_align_prefix)
-    valid_dataset = PunctuationDataset(input_path=args.valid_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.valid_audio_prefix, text_split_path_prefix=args.valid_text_align_prefix)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
+    # train_dataset = PunctuationDataset(input_path=args.train_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.train_audio_prefix, text_split_path_prefix=args.train_text_align_prefix)
+    # valid_dataset = PunctuationDataset(input_path=args.valid_set, label_vocab_path=args.label_vocab, audio_path_prefix=args.valid_audio_prefix, text_split_path_prefix=args.valid_text_align_prefix)
+    # train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
+    # valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
+    with open(args.train_set, "rb") as train_set:
+        train_dataloader = pickle.load(train_set)
+    train_dataloader = zip(train_dataloader["audios"], train_dataloader["sentences"], train_dataloader["labels"])
+    with open(args.valid_set, "rb") as valid_set:
+        valid_dataloader = pickle.load(valid_set)
+    valid_dataloader = zip(valid_dataloader["audios"], valid_dataloader["sentences"], valid_dataloader["labels"])
 
     # build model
     print("Building Model...")
-    model = BRETWithAudio(label_size=args.label_size, device=device)
+    model = PuncWithBERTandWav2vec(label_size=args.label_size, device=device, wav2vec_path=args.wav2vec_path)
     loss_func = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -122,13 +131,9 @@ if __name__ == '__main__':
         train_epoch_loss = 0
         for audios, sentences, labels in tqdm(train_dataloader, desc=f"[Epoch {epoch}]"):
             # move data to target device
-            audios = audios.to(device)
+            audios = [audio.to(device) for audio in audios]
             sentences = sentences.to(device)
             labels = labels.to(device)
-
-            # convert audios to float
-            if audios.dtype == torch.float64:
-                audios = audios.float()
 
             # zero gradient
             model.zero_grad()
@@ -137,7 +142,7 @@ if __name__ == '__main__':
             try:
                 preds = model(sentences=sentences, audios=audios)
             except Exception as e:
-                raise
+                # raise
                 print(f"Skipping this batch because {e}")
                 continue
 
@@ -156,13 +161,13 @@ if __name__ == '__main__':
             train_epoch_loss += loss.item()
 
             # for debug
-            if batch == 5:
+            if batch == 2:
                 break
 
         print("Starting Validating...")
         valid_epoch_loss = 0
         for audios, sentences, labels in tqdm(valid_dataloader, desc="[Validating]"):
-            audios = audios.to(device)
+            audios = [audio.to(device) for audio in audios]
             sentences = sentences.to(device)
             labels = labels.to(device)
 
